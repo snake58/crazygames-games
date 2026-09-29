@@ -27,7 +27,7 @@
 </head>
 <body>
 <div id="wrap"><canvas id="c"></canvas></div>
-<div id="vstamp">v5</div>
+<div id="vstamp">v6</div>
 <script>
 /* Portal: CrazyGames SDK v3 — https://docs.crazygames.com/
    Reglas aplicadas: init con await antes que todo; gameplayStart con el primer
@@ -37,12 +37,15 @@
    fijo (substeps en physStep); todo en inglés. */
 window.Portal = (function () {
   var ready = false;
+  var pendingStart = false; // gameplayStart llamado antes de que init() resolviera: se reenvía al estar listo
   function platformMuted(){
     try { return !!(window.CrazyGames && window.CrazyGames.SDK.game.settings.muteAudio); }
     catch (e) { return false; }
   }
   function applyMute(){ try { Sfx.setMuted(platformMuted()); } catch (e) {} }
   function sdk(){ return window.CrazyGames.SDK; }
+  function fireStart(){ try { sdk().game.gameplayStart(); } catch (e) {} }
+  function fireStop(){ try { sdk().game.gameplayStop(); } catch (e) {} }
   return {
     name: "crazygames",
   rewarded:false,
@@ -55,12 +58,13 @@ window.Portal = (function () {
             if (sdk().game.addSettingsChangeListener)
               sdk().game.addSettingsChangeListener(applyMute);
           } catch (e) {}
+          if (pendingStart) { pendingStart = false; fireStart(); }
         }).catch(function (){});
       } catch (e) {}
     },
     gameReady(){},
-    gameplayStart(){ try { if (ready) sdk().game.gameplayStart(); } catch (e) {} },
-    gameplayStop(){ try { if (ready) sdk().game.gameplayStop(); } catch (e) {} },
+    gameplayStart(){ try { if (ready) fireStart(); else pendingStart = true; } catch (e) {} },
+    gameplayStop(){ try { pendingStart = false; if (ready) fireStop(); } catch (e) {} },
     scoreChanged(s){},
   showRewarded(cb){ try{cb(false);}catch(e){} },
     showInterstitial(){
@@ -84,7 +88,7 @@ window.Portal = (function () {
     }
   };
 })();
-/* BUS TERMINAL BUILD v5 */
+/* BUS TERMINAL BUILD v6 */
 </script>
 <script>
 "use strict";
